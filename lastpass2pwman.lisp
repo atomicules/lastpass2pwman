@@ -1,49 +1,38 @@
-(let ((in (open "lastpass.csv" :if-does-not-exist nil)))
-    (when in
-	      (format t "~a~%" (read-line in))
-		      (close in)))
-
-(let ((in (open "lastpass.csv" :if-does-not-exist nil)))
-    (when in
-	      (read-csv-line (read-line in))
-		      (close in)))
-
-(let ((in (open "lastpass.csv" )))
-	(loop for line = (read-line in nil)
-		while line do (format t "~a~%" line))
-		      (close in))
-;Use csv-parser. Can't get cl-csv to build
-
-(csv-parser:read-csv-line (open "lastpass.csv"))
-
-(csv-parser:map-csv-file "lastpass.csv" 1)
-
-(defun pwmanln (fmt ln)
-	(format fmt "<PwItem><name>~a</name><host>~a</host><user>~a</user><passwd>~a</passwd><launch></launch></PwItem>~%" (fifth ln) (first ln) (second ln) (if (null (third ln)) (fourth ln) (third ln)))
-)
-
-(csv-parser:map-csv-file "lastpass.csv" (function pwmanln))
-
-;that is basically it already. Need to write out to a file. 
-;Also could do with checking how secure notes are parsed. Bit screwey for them
-;Ah, by the looks of it this is the extra field.
-;So need to do an if ps NIL, then get that field or if host is sn, etc.
+;CLisp script to convert lastpass CSV export to pwman format
+;Tested in SBCL. Use as follows
 ;
-;to pass the funciton
+;	sbcl --script /path/to/this/script </path/to/lastpass/export>
+;
+;The path to the Lastpass export is optional. If not supplied assumes file is
+;called "lastpass.csv" and is in current directory. Exports a file called
+;"pwman.txt" to current directory. This is in plain text and so needs encoding 
+;via GPG. 
+;
+;	gpg -r <yourgpgid@domain.com> -o ~/.pwman.db -e pwman.txt
+;
+;This will overwrite the pwman password database
+;Remember to delete the plain text files afterwards!
 
-;first ln , etc
-;then use concatenate
+;Load quicklisp
+(load "~/.sbclrc")
+;Load libraries
+(ql:quickload "csv-parser")
+(ql:quickload "xmls")
 
-(format nil "<xml stuff>~a.</xml stuff><xml>~a</xml>%" (first ln) (nth 1 ln))
+;Check for supplied filename, otherwise assume called lastpass.csv
+;It's 2nd *posix-argv* as first is always /path/to/sbcl, etc.
+(defparameter infile (if (null (second *posix-argv*)) "lastpass.csv" (second *posix-argv*)))
 
-;Shoud nbe easy peasy
 (with-open-file (stream "pwman.txt" :direction :output :if-exists :supersede)
-    (format stream "<?xml version=\"1.0\"?>~%<PWMan_PasswordList version=\"3\">~%<PwList name=\"Main\">~%")
-	(csv-parser:map-csv-file "lastpass.csv" 
-		(lambda (ln) (format stream "<PwItem><name>~a</name><host>~a</host><user>~a</user><passwd>~a</passwd><launch></launch></PwItem>~%" (fifth ln) (first ln) (second ln) (if (null (third ln)) (fourth ln) (third ln))))
-)	
-    (format stream "</PwList>~%</PWMan_PasswordList>")
-)
-
-
-;Must be a blank line at the end, which means a NIL gets printed out. No, doesn't seem to be. Don't know what that is about.
+    (format stream "<?xml version=\"1.0\"?><PWMan_PasswordList version=\"3\"><PwList name=\"Main\">")
+	(csv-parser:map-csv-file infile 
+		(lambda (ln)
+			(format stream
+				"<PwItem><name>~a</name><host>~a</host><user>~a</user><passwd>~a</passwd><launch></launch></PwItem>"
+				(xmls:toxml (fifth ln))
+				(xmls:toxml (first ln))
+				(xmls:toxml (second ln))
+				(if (null (third ln)) ;Secure Notes have no password 
+					(xmls:toxml (fourth ln)) ;Use extra field if Secure Note
+					(xmls:toxml (third ln))))))
+    (format stream "</PwList></PWMan_PasswordList>"))
