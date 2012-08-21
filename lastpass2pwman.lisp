@@ -18,8 +18,8 @@
 
 (csv-parser:map-csv-file "lastpass.csv" 1)
 
-(defun pwmanln (ln)
-	(format t "<PwItem><name>~a</name><host>~a</host><user>~a</user><passwd>~a</passwd><launch></launch></PwItem>~%" (fifth ln) (first ln) (second ln) (if (null (third ln)) (fourth ln) (third ln)))
+(defun pwmanln (fmt ln)
+	(format fmt "<PwItem><name>~a</name><host>~a</host><user>~a</user><passwd>~a</passwd><launch></launch></PwItem>~%" (fifth ln) (first ln) (second ln) (if (null (third ln)) (fourth ln) (third ln)))
 )
 
 (csv-parser:map-csv-file "lastpass.csv" (function pwmanln))
@@ -39,6 +39,11 @@
 ;Shoud nbe easy peasy
 (with-open-file (stream "pwman.txt" :direction :output :if-exists :supersede)
     (format stream "<?xml version=\"1.0\"?>~%<PWMan_PasswordList version=\"3\">~%<PwList name=\"Main\">~%")
-	
-	
-	)
+	(csv-parser:map-csv-file "lastpass.csv" 
+		(lambda (ln) (format stream "<PwItem><name>~a</name><host>~a</host><user>~a</user><passwd>~a</passwd><launch></launch></PwItem>~%" (fifth ln) (first ln) (second ln) (if (null (third ln)) (fourth ln) (third ln))))
+)	
+    (format stream "</PwList>~%</PWMan_PasswordList>")
+)
+
+
+;Must be a blank line at the end, which means a NIL gets printed out. No, doesn't seem to be. Don't know what that is about.
