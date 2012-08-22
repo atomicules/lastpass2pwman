@@ -24,7 +24,7 @@
 (defparameter infile (if (null (second *posix-argv*)) "lastpass.csv" (second *posix-argv*)))
 
 (with-open-file (stream "pwman.txt" :direction :output :if-exists :supersede)
-    (format stream "<?xml version=\"1.0\"?><PWMan_PasswordList version=\"3\"><PwList name=\"Main\">")
+	(format stream "<?xml version=\"1.0\"?><PWMan_PasswordList version=\"3\"><PwList name=\"Main\">")
 	(csv-parser:map-csv-file infile 
 		(lambda (ln)
 			(format stream
@@ -35,4 +35,4 @@
 				(if (null (third ln)) ;Secure Notes have no password 
 					(xmls:toxml (fourth ln)) ;Use extra field if Secure Note
 					(xmls:toxml (third ln))))))
-    (format stream "</PwList></PWMan_PasswordList>"))
+	(format stream "</PwList></PWMan_PasswordList>"))
