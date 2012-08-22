@@ -34,5 +34,5 @@
 				(xmls:toxml (second ln))
 				(if (null (third ln)) ;Secure Notes have no password 
 					(xmls:toxml (fourth ln)) ;Use extra field if Secure Note
-					(xmls:toxml (third ln))))))
+					(xmls:toxml (third ln))))) :skip-lines 1)
 	(format stream "</PwList></PWMan_PasswordList>"))
