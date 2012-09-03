@@ -1,17 +1,5 @@
-;CLisp script to convert lastpass CSV export to pwman format
-;Tested in SBCL. Use as follows
-;
-;	sbcl --script /path/to/this/script </path/to/lastpass/export>
-;
-;The path to the Lastpass export is optional. If not supplied assumes file is
-;called "lastpass.csv" and is in current directory. Exports a file called
-;"pwman.txt" to current directory. This is in plain text and so needs encoding 
-;via GPG. 
-;
-;	gpg -r <yourgpgid@domain.com> -o ~/.pwman.db -e pwman.txt
-;
-;This will overwrite the pwman password database
-;Remember to delete the plain text files afterwards!
+;CLisp script for SBCL to convert lastpass CSV export to pwman format
+;See README for usage instructions
 
 ;Load quicklisp
 (load "~/.sbclrc")
@@ -19,10 +7,12 @@
 (ql:quickload "csv-parser")
 (ql:quickload "xmls")
 
+;Note to self: Start with 2nd *posix-argv* as first is always /path/to/sbcl, etc.
+;gpgid to encrypt file with
+(defparameter gpgid (second *posix-argv*))
 ;Check for supplied filename, otherwise assume called lastpass.csv
-;It's 2nd *posix-argv* as first is always /path/to/sbcl, etc.
-(defparameter infile (if (null (second *posix-argv*)) "lastpass.csv" (second *posix-argv*)))
-
+(defparameter infile (if (null (third *posix-argv*)) "lastpass.csv" (third *posix-argv*)))
+;read the lastpass file and convert to PWman format
 (with-open-file (stream "pwman.txt" :direction :output :if-exists :supersede)
 	(format stream "<?xml version=\"1.0\"?><PWMan_PasswordList version=\"3\"><PwList name=\"Main\">")
 	(csv-parser:map-csv-file infile 
@@ -36,3 +26,16 @@
 					(xmls:toxml (fourth ln)) ;Use extra field if Secure Note
 					(xmls:toxml (third ln))))) :skip-lines 1)
 	(format stream "</PwList></PWMan_PasswordList>"))
+;Move original file to backup
+(rename-file (concatenate 'string (sb-unix::posix-getenv "HOME") "/.pwman.db") (concatenate 'string (sb-unix::posix-getenv "HOME") "/.pwman.db.bak")) 
+;gpg encrpyt the file
+(let ((proc (sb-ext:run-program "gpg" (list "-r" gpgid "-o" (concatenate 'string (sb-unix::posix-getenv "HOME") "/.pwman.db") "-e" "pwman.txt") :search :environment)))
+	(if (= 0 (sb-ext:process-exit-code proc))
+		;If that was successful, then delete the un-encrypted files
+		(progn 
+			(delete-file infile) 
+			(delete-file "pwman.txt"))
+		;If not restore backup and leave plain text files (otherwise will fail next time on above rename)
+		(progn
+			(rename-file (concatenate 'string (sb-unix::posix-getenv "HOME") "/.pwman.db.bak") (concatenate 'string (sb-unix::posix-getenv "HOME") "/.pwman.db")) 
+			(print "Couldn't encrypt file, plain text files have not been deleted"))))
