@@ -1,8 +1,8 @@
 #Lastpass2pwman
 
-CLisp script for SBCL to convert [Lastpass](https://lastpass.com) CSV export to [pwman](http://pwman.sourceforge.net) format.
+CLisp script for SBCL to convert [Lastpass](https://lastpass.com) CSV export to [PWman](http://pwman.sourceforge.net) format.
 
-Mainly done as a little learning exercise in Lisp for me, but also because I use Lastpass and also want to use a command line based password manager. Unfortunately there doesn't seem to be a command line client for Lastpass so I'm going to use pwman and every so often do a one way update of passwords.
+Mainly done as a little learning exercise in Lisp for me, but also because I use Lastpass and also want to use a command line based password manager. Unfortunately there doesn't seem to be a command line client for Lastpass so I'm going to use PWman and every so often do a one way update of passwords.
 
 ## How to use
 
