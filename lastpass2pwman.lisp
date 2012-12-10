@@ -37,13 +37,13 @@
 					;Then loop through each entry in group
 					(loop for entry in groupentries
 						do (format stream
-								"<PwItem><name>~a</name><host>~a</host><user>~a</user><passwd>~a</passwd><launch></launch></PwItem>"
-								(xmls:toxml (fifth entry))
-								(xmls:toxml (first entry))
-								(xmls:toxml (second entry))
-								(if (null (third entry)) ;Secure Notes have no password
-									(xmls:toxml (fourth entry)) ;Use extra field if Secure Note
-									(xmls:toxml (third entry)))))
+							"<PwItem><name>~a</name><host>~a</host><user>~a</user><passwd>~a</passwd><launch></launch></PwItem>"
+							(xmls:toxml (fifth entry))
+							(xmls:toxml (first entry))
+							(xmls:toxml (second entry))
+							(if (null (third entry)) ;Secure Notes have no password
+								(xmls:toxml (fourth entry)) ;Use extra field if Secure Note
+								(xmls:toxml (third entry)))))
 					(format stream "</PwList>"))
 				(return)))))
 	(format stream "</PwList></PWMan_PasswordList>"))
