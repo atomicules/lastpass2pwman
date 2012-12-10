@@ -12,19 +12,35 @@
 (defparameter gpgid (second *posix-argv*))
 ;Check for supplied filename, otherwise assume called lastpass.csv
 (defparameter infile (if (null (third *posix-argv*)) "lastpass.csv" (third *posix-argv*)))
-;read the lastpass file and convert to PWman format
+;read the lastpass file and build up hash for each group, then write lists at the end.
+(defparameter *lastpass* (make-hash-table))
+(csv-parser:map-csv-file infile
+	(lambda (ln)
+		(if (gethash (read-from-string (substitute #\- #\Space (sixth ln))) *lastpass*) ;Group
+			;Note, without (intern (string-upcase or (read-from-string keys aren't set properly and something bizarre happens.
+			(setf (gethash (read-from-string (substitute #\- #\Space (sixth ln))) *lastpass*) (append (gethash (read-from-string (substitute #\- #\Space (sixth ln))) *lastpass*) (list ln))) ;append key
+			(setf (gethash (read-from-string (substitute #\- #\Space (sixth ln))) *lastpass*) (list ln)))) :skip-lines 1) ;create key
 (with-open-file (stream "pwman.txt" :direction :output :if-exists :supersede)
 	(format stream "<?xml version=\"1.0\"?><PWMan_PasswordList version=\"3\"><PwList name=\"Main\">")
-	(csv-parser:map-csv-file infile 
-		(lambda (ln)
-			(format stream
-				"<PwItem><name>~a</name><host>~a</host><user>~a</user><passwd>~a</passwd><launch></launch></PwItem>"
-				(xmls:toxml (fifth ln))
-				(xmls:toxml (first ln))
-				(xmls:toxml (second ln))
-				(if (null (third ln)) ;Secure Notes have no password 
-					(xmls:toxml (fourth ln)) ;Use extra field if Secure Note
-					(xmls:toxml (third ln))))) :skip-lines 1)
+	;For each key in hash
+	(with-hash-table-iterator (group *lastpass*)
+		(loop
+			(multiple-value-bind (returned? key value) (group)
+			(if returned? 
+				(progn
+					(format stream "<PwList name=\"~a\">" key)	
+					;Then loop through each entry in value
+					(loop for entry in value
+						  do (format stream
+								"<PwItem><name>~a</name><host>~a</host><user>~a</user><passwd>~a</passwd><launch></launch></PwItem>"
+								(xmls:toxml (fifth entry))
+								(xmls:toxml (first entry))
+								(xmls:toxml (second entry))
+								(if (null (third entry)) ;Secure Notes have no password 
+									(xmls:toxml (fourth entry)) ;Use extra field if Secure Note
+									(xmls:toxml (third entry)))))
+					(format stream "</PwList>"))
+				(return)))))
 	(format stream "</PwList></PWMan_PasswordList>"))
 ;Move original file to backup
 (rename-file (concatenate 'string (sb-unix::posix-getenv "HOME") "/.pwman.db") (concatenate 'string (sb-unix::posix-getenv "HOME") "/.pwman.db.bak")) 
