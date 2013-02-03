@@ -50,7 +50,7 @@
 ;Move original file to backup
 (rename-file (concatenate 'string (sb-unix::posix-getenv "HOME") "/.pwman.db") (concatenate 'string (sb-unix::posix-getenv "HOME") "/.pwman.db.bak"))
 ;gpg encrpyt the file
-(let ((proc (sb-ext:run-program "gpg" (list "-r" gpgid "-o" (concatenate 'string (sb-unix::posix-getenv "HOME") "/.pwman.db") "-e" "pwman.txt") :search :environment)))
+(let ((proc (sb-ext:run-program "gpg" (list "-a" "-r" gpgid "-o" (concatenate 'string (sb-unix::posix-getenv "HOME") "/.pwman.db") "-e" "pwman.txt") :search :environment)))
 	(if (= 0 (sb-ext:process-exit-code proc))
 		;If that was successful, then delete the un-encrypted files
 		(progn
